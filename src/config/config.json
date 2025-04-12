@@ -1,0 +1,78 @@
+{
+    "window": {
+        "width": 800,
+        "height": 600,
+        "title": "Modifier Mallet",
+        "fps": 60
+    },
+    "physics": {
+        "gravity": 0.8,
+        "player": {
+            "acceleration": 0.5,
+            "deceleration": 0.35,
+            "air_acceleration": 0.2,
+            "max_speed": 7,
+            "jump_force": -15,
+            "mass": 1.0
+        },
+        "object": {
+            "default_mass": 1.0,
+            "default_friction": 0.5,
+            "default_elasticity": 0.2
+        },
+        "modifiers": {
+            "bouncy_elasticity": 0.9,
+            "heavy_mass_multiplier": 5,
+            "floaty_gravity_scale": 0.1,
+            "sticky_drag_force": 10,
+            "ghostly_alpha": 128
+        }
+    },
+    "controls": {
+        "move_left": 97,
+        "move_right": 100,
+        "jump": 32,
+        "cycle_mod_next": 101,
+        "cycle_mod_prev": 113,
+        "reset_level": 114,
+        "pause": 27,
+        "use_mallet": 1
+    },
+    "colors": {
+        "background": [0, 0, 0],
+        "ui_background": [50, 50, 50],
+        "ui_text": [255, 255, 255],
+        "mallet_range": [100, 100, 100, 150],
+        "cooldown_bar": [200, 200, 0],
+        "modifiers": {
+            "bouncy": [0, 255, 255],
+            "heavy": [139, 69, 19],
+            "floaty": [255, 105, 180],
+            "sticky": [128, 0, 128],
+            "reversed": [255, 165, 0],
+            "ghostly": [128, 128, 128]
+        }
+    },
+    "ui": {
+        "font_name": null,
+        "font_size_normal": 24,
+        "font_size_hint": 18,
+        "modifier_selector_scale": 1.2,
+        "modifier_outline_thickness": 2,
+        "show_modifier_icons": true,
+        "show_cooldown": true,
+        "show_hints": true
+    },
+    "game": {
+        "max_active_modifiers": 3,
+        "level_directory": "levels/",
+        "modifier_cooldown": 0.5,
+        "mallet_range": 100,
+        "mallet_hit_force": 5
+    },
+    "debug": {
+        "draw_colliders": true,
+        "show_fps": true,
+        "log_level": "INFO"
+    }
+}

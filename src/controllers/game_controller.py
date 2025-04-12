@@ -1,27 +1,38 @@
 import pygame
+import json
+import os
 from typing import List, Optional
 from src.models.player import Player
 from src.models.game_object import GameObject
 from src.models.level_manager import LevelManager
 from src.utils.constants import *
 from src.utils.physics import handle_collisions, handle_object_interaction, keep_in_bounds
+from src.utils.settings_manager import SettingsManager
 
 class GameController:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        pygame.display.set_caption("The Modifier Mallet")
+        self.settings = SettingsManager()
+        
+        # Initialize display with settings
+        self.screen = pygame.display.set_mode((
+            self.settings.get("window", "width", default=800),
+            self.settings.get("window", "height", default=600)
+        ))
+        pygame.display.set_caption(self.settings.get("window", "title", default="Modifier Mallet"))
         self.clock = pygame.time.Clock()
         self.game_state = GameState.PLAYING
         
-        # Initialize level system
-        self.level_manager = LevelManager()
+        # Initialize game objects
+        self.level_manager = LevelManager(self.settings.get("game", "level_directory", default="levels/"))
+        self.player = None
         self.static_objects = []
         self.dynamic_objects = []
-        self.player = None
         self.goal = None
-        self.current_level_data = None
         self.load_current_level()
+        
+        # FPS display
+        self.fps_font = pygame.font.Font(None, 36)
 
     def load_current_level(self):
         """Load the current level from the level manager."""
@@ -34,12 +45,12 @@ class GameController:
         
         # Create player at start position
         if player_start:
-            self.player = Player(player_start.rect.x, player_start.rect.y)
+            self.player = Player(player_start.rect.x, player_start.rect.y, self.settings)
         else:
-            self.player = Player(50, WINDOW_HEIGHT - 100)  # Default position
+            self.player = Player(50, self.settings.get("window", "height") - 100, self.settings)
 
         # Load level data for hints and description
-        level_file = f"src/levels/level_{level_number + 1}.json"
+        level_file = f"{self.settings.get('game', 'level_directory', default='levels/')}/level_{level_number + 1}.json"
         try:
             with open(level_file, 'r') as f:
                 self.current_level_data = json.load(f)
@@ -56,18 +67,7 @@ class GameController:
                 return False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left click
-                    mouse_x, mouse_y = event.pos
-                    # Check for draggable objects first
-                    draggable_clicked = False
-                    for obj in self.dynamic_objects:
-                        if obj.is_draggable and obj.rect.collidepoint(mouse_x, mouse_y):
-                            obj.start_drag(mouse_x, mouse_y)
-                            draggable_clicked = True
-                            break
-                    
-                    # If no draggable object was clicked, use mallet
-                    if not draggable_clicked:
-                        self.handle_mallet_use()
+                    self.handle_mallet_use()
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left click release
                     # Stop dragging any objects being dragged
@@ -75,9 +75,9 @@ class GameController:
                         if obj.being_dragged:
                             obj.stop_drag()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if event.key == self.settings.get("controls", "pause", default=pygame.K_ESCAPE):
                     self.game_state = GameState.PAUSED if self.game_state == GameState.PLAYING else GameState.PLAYING
-                elif event.key == pygame.K_r:  # Reset level
+                elif event.key == self.settings.get("controls", "reset_level", default=pygame.K_r):
                     self.load_current_level()
         return True
 
@@ -131,39 +131,53 @@ class GameController:
             text = font.render('Game Complete!', True, (255, 215, 0))
         else:
             text = font.render('Level Complete!', True, (255, 215, 0))
-        text_rect = text.get_rect(center=(WINDOW_WIDTH/2, WINDOW_HEIGHT/2))
+        text_rect = text.get_rect(center=(self.settings.get("window", "width")/2, self.settings.get("window", "height")/2))
         self.screen.blit(text, text_rect)
         pygame.display.flip()
         pygame.time.wait(2000)
 
     def draw(self):
-        self.screen.fill(BLACK)
+        # Fill background
+        self.screen.fill(tuple(self.settings.get("colors", "background", default=[0, 0, 0])))
 
-        # Draw static objects
+        # Draw game objects
         for obj in self.static_objects:
             obj.draw(self.screen)
 
-        # Draw dynamic objects
         for obj in self.dynamic_objects:
             obj.draw(self.screen)
 
-        # Draw goal
         if self.goal:
             self.goal.draw(self.screen)
 
-        # Draw player
         self.player.draw(self.screen)
 
-        # Draw level information and hints
+        # Draw level information
         if self.current_level_data:
-            font = pygame.font.Font(None, 36)
-            name_text = font.render(f"Level {self.level_manager.current_level + 1}: {self.current_level_data['name']}", True, WHITE)
+            font_size = self.settings.get("ui", "font_size_normal", default=24)
+            small_font_size = self.settings.get("ui", "font_size_hint", default=18)
+            
+            font = pygame.font.Font(None, font_size)
+            small_font = pygame.font.Font(None, small_font_size)
+            text_color = tuple(self.settings.get("colors", "ui_text", default=[255, 255, 255]))
+            
+            # Level name
+            name_text = font.render(
+                f"Level {self.level_manager.current_level + 1}: {self.current_level_data['name']}", 
+                True, text_color
+            )
             self.screen.blit(name_text, (10, 10))
             
-            small_font = pygame.font.Font(None, 24)
+            # Level hints
             for i, hint in enumerate(self.current_level_data.get("hints", [])):
-                hint_text = small_font.render(hint, True, WHITE)
+                hint_text = small_font.render(hint, True, text_color)
                 self.screen.blit(hint_text, (10, 50 + i * 25))
+
+        # Draw FPS counter if enabled
+        if self.settings.get("debug", "show_fps", default=False):
+            fps = self.clock.get_fps()
+            fps_text = self.fps_font.render(f"FPS: {int(fps)}", True, (255, 255, 0))
+            self.screen.blit(fps_text, (10, self.settings.get("window", "height") - 40))
 
         pygame.display.flip()
 
@@ -173,6 +187,5 @@ class GameController:
             running = self.handle_events()
             self.update()
             self.draw()
-            self.clock.tick(FPS)
-
+            self.clock.tick(self.settings.get("window", "fps", default=60))
         pygame.quit()

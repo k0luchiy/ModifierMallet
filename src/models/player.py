@@ -4,19 +4,28 @@ from src.models.game_object import GameObject
 from src.models.modifier import Modifier
 from src.models.sprite_manager import SpriteManager
 from src.utils.constants import *
+from src.utils.settings_manager import SettingsManager
 
 class Player(GameObject):
-    def __init__(self, x: float, y: float):
-        super().__init__(x, y, 30, 50, BLUE)
-        self.speed = PLAYER_SPEED
-        self.jump_force = PLAYER_JUMP_FORCE
+    def __init__(self, x: float, y: float, settings: SettingsManager):
+        self.settings = settings
+        player_mass = settings.get("physics", "player", "mass", default=1.0)
+        super().__init__(x, y, 30, 50, tuple(settings.get("colors", "modifiers", "bouncy", default=[0, 0, 255])), mass=player_mass)
+        
+        # Load player settings
+        self.speed = settings.get("physics", "player", "max_speed", default=7)
+        self.acceleration = settings.get("physics", "player", "acceleration", default=0.5)
+        self.deceleration = settings.get("physics", "player", "deceleration", default=0.35)
+        self.air_acceleration = settings.get("physics", "player", "air_acceleration", default=0.2)
+        self.jump_force = settings.get("physics", "player", "jump_force", default=-15)
+        self.mallet_range = settings.get("mallet", "range", default=100)
+        
         self.can_jump = False
-        self.mallet_range = 100
         self.facing_right = True
         self.current_modifier_index = 0
         self.modifier_types = ["bouncy", "heavy", "floaty", "sticky", "reversed", "ghostly"]
-        self.last_modifier_use = 0  # Time tracking for modifier cooldown
-        self.modifier_cooldown = 0.5  # Half second cooldown between modifier uses
+        self.last_modifier_use = 0
+        self.modifier_cooldown = settings.get("mallet", "cooldown", default=0.5)
         
         # Animation states
         self.sprite_manager = SpriteManager()
@@ -27,46 +36,70 @@ class Player(GameObject):
         self.last_state = "idle"
 
     def update(self):
-        current_time = pygame.time.get_ticks() / 1000.0  # Convert to seconds
+        current_time = pygame.time.get_ticks() / 1000.0
         keys = pygame.key.get_pressed()
         
         # Store previous state for animation changes
         self.last_state = self.state
-        was_moving = abs(self.velocity_x) > 0.1  # Small threshold for movement
         
-        # Horizontal movement with acceleration and deceleration
-        if keys[pygame.K_LEFT]:
-            self.velocity_x = max(-self.speed, self.velocity_x - PLAYER_ACCELERATION)
-            self.facing_right = False
-            self.state = "walk"
-        elif keys[pygame.K_RIGHT]:
-            self.velocity_x = min(self.speed, self.velocity_x + PLAYER_ACCELERATION)
-            self.facing_right = True
-            self.state = "walk"
-        else:
-            # Apply deceleration
-            if self.velocity_x > 0:
-                self.velocity_x = max(0, self.velocity_x - PLAYER_DECELERATION)
-            elif self.velocity_x < 0:
-                self.velocity_x = min(0, self.velocity_x + PLAYER_DECELERATION)
-            
-            if abs(self.velocity_x) < 0.1:  # Small threshold for idle
-                self.state = "idle"
+        # Get control keys from settings
+        key_left = self.settings.get("controls", "move_left", default=pygame.K_LEFT)
+        key_right = self.settings.get("controls", "move_right", default=pygame.K_RIGHT)
+        key_jump = self.settings.get("controls", "jump", default=pygame.K_SPACE)
+        
+        # Only allow horizontal movement control if not being knocked back
+        if abs(self.velocity_x) < self.speed * 1.5:
+            # Horizontal movement with acceleration
+            if keys[key_left]:
+                accel = self.air_acceleration if not self.on_ground else self.acceleration
+                self.velocity_x = max(-self.speed, self.velocity_x - accel)
+                self.facing_right = False
+                self.state = "walk"
+            elif keys[key_right]:
+                accel = self.air_acceleration if not self.on_ground else self.acceleration
+                self.velocity_x = min(self.speed, self.velocity_x + accel)
+                self.facing_right = True
+                self.state = "walk"
+            else:
+                # Apply deceleration
+                if self.velocity_x > 0:
+                    self.velocity_x = max(0, self.velocity_x - self.deceleration)
+                elif self.velocity_x < 0:
+                    self.velocity_x = min(0, self.velocity_x + self.deceleration)
+                
+                if abs(self.velocity_x) < 0.1:
+                    self.state = "idle"
 
-        # Jumping
-        if keys[pygame.K_SPACE] and self.can_jump:
+        # Store previous position before physics update
+        self.prev_x = self.rect.x
+        self.prev_y = self.rect.y
+        
+        # Only apply gravity if not on ground
+        if not self.on_ground:
+            self.velocity_y += self.gravity
+            self.state = "jump"
+        elif keys[key_jump] and self.can_jump:
             self.velocity_y = self.jump_force
             self.can_jump = False
             self.state = "jump"
+            self.on_ground = False
 
-        # Change modifier type with Q and E keys
-        if keys[pygame.K_q]:
-            self.current_modifier_index = (self.current_modifier_index - 1) % len(self.modifier_types)
-        elif keys[pygame.K_e]:
+        # Update position
+        self.rect.x += self.velocity_x
+        self.rect.y += self.velocity_y
+
+        # Limit speeds
+        max_fall_speed = self.settings.get("physics", "player", "max_speed", default=20)
+        if self.velocity_y > max_fall_speed:
+            self.velocity_y = max_fall_speed
+
+        # Modifier cycling
+        key_next = self.settings.get("controls", "cycle_mod_next", default=pygame.K_e)
+        key_prev = self.settings.get("controls", "cycle_mod_prev", default=pygame.K_q)
+        if keys[key_next]:
             self.current_modifier_index = (self.current_modifier_index + 1) % len(self.modifier_types)
-
-        # Update physics
-        super().update()
+        elif keys[key_prev]:
+            self.current_modifier_index = (self.current_modifier_index - 1) % len(self.modifier_types)
 
         # Update animation state
         if not self.on_ground:
@@ -118,19 +151,11 @@ class Player(GameObject):
 
     def draw(self, screen: pygame.Surface):
         # Draw modifier effect indicators
-        for mod in self.active_modifiers:
-            effect_color = {
-                "bouncy": (0, 255, 255),  # Cyan
-                "heavy": (139, 69, 19),   # Brown
-                "floaty": (255, 192, 203), # Pink
-                "sticky": (128, 0, 128),   # Purple
-                "reversed": (255, 165, 0), # Orange
-                "ghostly": (200, 200, 200) # Light gray
-            }.get(mod.effect_type, WHITE)
-            
-            pygame.draw.circle(screen, effect_color,
-                             (int(self.rect.centerx), int(self.rect.centery)),
-                             self.rect.width + 5, 2)
+        for modifier in self.active_modifiers:
+            effect_color = tuple(self.settings.get("colors", "modifiers", modifier.effect_type, 
+                                                 default=[255, 255, 255]))
+            thickness = self.settings.get("ui", "modifier_outline_thickness", default=2)
+            pygame.draw.rect(screen, effect_color, self.rect, thickness)
 
         if self.has_sprites:
             sprite = self.sprite_manager.get_current_animation_frame(self.state)
@@ -145,17 +170,28 @@ class Player(GameObject):
             super().draw(screen)
 
         # Draw mallet range indicator
-        pygame.draw.circle(screen, (100, 100, 100), 
+        range_color = tuple(self.settings.get("colors", "mallet_range", default=[100, 100, 100, 150]))
+        pygame.draw.circle(screen, range_color[:3], 
                          (int(self.rect.centerx), int(self.rect.centery)), 
                          self.mallet_range, 1)
         
         # Draw current modifier type and cooldown
-        font = pygame.font.Font(None, 24)
+        font_size = self.settings.get("ui", "font_size_normal", default=24)
+        font = pygame.font.Font(None, font_size)
+        text_color = tuple(self.settings.get("colors", "ui_text", default=[255, 255, 255]))
+        
         current_time = pygame.time.get_ticks() / 1000.0
         cooldown_remaining = max(0, self.modifier_cooldown - (current_time - self.last_modifier_use))
         
         if cooldown_remaining > 0:
-            text = font.render(f"Modifier: {self.modifier_types[self.current_modifier_index]} ({cooldown_remaining:.1f}s)", True, WHITE)
+            text = font.render(f"Modifier: {self.modifier_types[self.current_modifier_index]} ({cooldown_remaining:.1f}s)", 
+                             True, text_color)
         else:
-            text = font.render(f"Modifier: {self.modifier_types[self.current_modifier_index]} (Ready!)", True, WHITE)
-        screen.blit(text, (10, 10))
+            text = font.render(f"Modifier: {self.modifier_types[self.current_modifier_index]} (Ready!)", 
+                             True, text_color)
+        # Position the text below the level name (40 pixels down from top)
+        screen.blit(text, (10, 40))
+
+        # Draw debug info if enabled
+        if self.settings.get("debug", "draw_colliders", default=False):
+            pygame.draw.rect(screen, (255, 0, 0), self.rect, 1)

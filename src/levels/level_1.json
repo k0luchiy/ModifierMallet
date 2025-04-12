@@ -1,66 +1,46 @@
 {
-    "name": "Modifier Introduction",
-    "description": "Learn to use different modifiers",
+    "name": "Tutorial Level",
+    "description": "Learn how to use modifiers",
     "player_start": {
         "x": 50,
         "y": 500
     },
     "goal": {
         "x": 700,
-        "y": 100
+        "y": 300
     },
     "static_objects": [
         {
+            "type": "platform",
             "x": 0,
             "y": 550,
             "width": 800,
             "height": 20,
-            "color": [0, 255, 0],
-            "type": "platform"
+            "color": [0, 255, 0]
         },
         {
-            "x": 300,
-            "y": 400,
-            "width": 200,
+            "type": "platform",
+            "x": 650,
+            "y": 350,
+            "width": 150,
             "height": 20,
-            "color": [0, 255, 0],
-            "type": "platform"
-        },
-        {
-            "x": 600,
-            "y": 150,
-            "width": 200,
-            "height": 20,
-            "color": [0, 255, 0],
-            "type": "platform"
+            "color": [0, 255, 0]
         }
     ],
     "dynamic_objects": [
         {
-            "x": 100,
-            "y": 520,
+            "type": "box",
+            "x": 200,
+            "y": 500,
             "width": 30,
             "height": 30,
             "color": [255, 0, 0],
-            "type": "box",
-            "hint": "Make me bouncy!"
-        },
-        {
-            "x": 350,
-            "y": 370,
-            "width": 30,
-            "height": 30,
-            "color": [255, 0, 0],
-            "type": "box",
-            "hint": "Try making me sticky!"
+            "hint": "Try making me bouncy!"
         }
     ],
     "hints": [
-        "Use Q/E to cycle through different modifiers",
-        "Click objects with your mallet to apply modifiers",
-        "Make the first box bouncy to reach the middle platform",
-        "Make the second box sticky to create a movable step",
-        "You can make yourself floaty to reach higher!",
-        "Press R to reset the level if you get stuck"
+        "Use Q/E to cycle through modifiers",
+        "Left click to use your mallet",
+        "Try making the red box bouncy to reach the high platform!"
     ]
 }

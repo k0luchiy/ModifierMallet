@@ -1,27 +1,39 @@
 import json
 import os
-from typing import Dict, List, Tuple, Any
-from .game_object import GameObject
+from typing import List, Tuple, Optional
+from src.models.game_object import GameObject
+from src.utils.settings_manager import SettingsManager
 
 class LevelManager:
     def __init__(self, levels_dir: str = "src/levels"):
-        self.levels_dir = levels_dir
+        self.settings = SettingsManager()
+        self.levels_dir = os.path.join("src", self.settings.get("game", "level_directory", default="levels"))
         self.current_level = 0
         self.levels = self._load_level_list()
         
     def _load_level_list(self) -> List[str]:
         """Load list of available level files."""
-        return sorted([f for f in os.listdir(self.levels_dir) 
-                      if f.endswith('.json')])
+        try:
+            if not os.path.exists(self.levels_dir):
+                os.makedirs(self.levels_dir)
+            return sorted([f for f in os.listdir(self.levels_dir) 
+                         if f.endswith('.json')])
+        except Exception as e:
+            print(f"Error loading levels: {e}")
+            return []
 
-    def load_level(self, level_number: int) -> Tuple[List[GameObject], List[GameObject], GameObject, GameObject]:
+    def load_level(self, level_number: int) -> Tuple[List[GameObject], List[GameObject], Optional[GameObject], Optional[GameObject]]:
         """Load a level by number and return its objects."""
-        if level_number >= len(self.levels):
+        if not self.levels or level_number >= len(self.levels):
             return [], [], None, None
 
         level_file = os.path.join(self.levels_dir, self.levels[level_number])
-        with open(level_file, 'r') as f:
-            level_data = json.load(f)
+        try:
+            with open(level_file, 'r') as f:
+                level_data = json.load(f)
+        except Exception as e:
+            print(f"Error loading level {level_number}: {e}")
+            return [], [], None, None
 
         static_objects = []
         dynamic_objects = []
@@ -33,8 +45,10 @@ class LevelManager:
             game_obj = GameObject(
                 obj['x'], obj['y'],
                 obj['width'], obj['height'],
-                tuple(obj.get('color', (0, 255, 0)))  # Default to green
+                tuple(obj.get('color', [0, 255, 0]))  # Default to green
             )
+            # Set ghost-passable property if specified
+            game_obj.is_ghost_passable = obj.get('is_ghost_passable', False)
             static_objects.append(game_obj)
 
         # Create dynamic objects (boxes, etc)
@@ -42,8 +56,11 @@ class LevelManager:
             game_obj = GameObject(
                 obj['x'], obj['y'],
                 obj['width'], obj['height'],
-                tuple(obj.get('color', (255, 0, 0)))  # Default to red
+                tuple(obj.get('color', [255, 0, 0]))  # Default to red
             )
+            game_obj.is_ghost_passable = obj.get('is_ghost_passable', False)
+            if obj.get('type') == 'blocking_box':
+                game_obj.is_pushable = False
             dynamic_objects.append(game_obj)
 
         # Create player start position
@@ -54,7 +71,7 @@ class LevelManager:
         # Create goal
         if 'goal' in level_data:
             g = level_data['goal']
-            goal = GameObject(g['x'], g['y'], 30, 30, (255, 215, 0))
+            goal = GameObject(g['x'], g['y'], 30, 30, (255, 215, 0))  # Gold color
 
         return static_objects, dynamic_objects, player_start, goal
 

@@ -1,6 +1,6 @@
 {
-    "name": "Heavy Pushing",
-    "description": "Learn to use heavy and bouncy modifiers together",
+    "name": "Ghost Walls",
+    "description": "Learn to use heavy and ghostly modifiers",
     "player_start": {
         "x": 50,
         "y": 500
@@ -33,6 +33,15 @@
             "height": 20,
             "color": [0, 255, 0],
             "type": "platform"
+        },
+        {
+            "x": 500,
+            "y": 250,
+            "width": 20,
+            "height": 200,
+            "color": [128, 128, 255],
+            "type": "ghost_wall",
+            "is_ghost_passable": true
         }
     ],
     "dynamic_objects": [
@@ -43,7 +52,7 @@
             "height": 30,
             "color": [255, 0, 0],
             "type": "box",
-            "hint": "Make me bouncy to reach the middle platform!"
+            "hint": "Make me ghostly to pass through the blue wall!"
         },
         {
             "x": 400,
@@ -65,9 +74,9 @@
         }
     ],
     "hints": [
-        "You'll need to use multiple modifiers to solve this puzzle",
-        "First use the bouncy modifier to reach the middle platform",
-        "Then make the second red box heavy to push the blocking box",
-        "Finally, use bouncy again to reach the goal"
+        "Only certain walls (blue ones) can be passed through when ghostly",
+        "Regular walls and floors will still block ghostly objects",
+        "Try using heavy objects to push obstacles off platforms",
+        "You can make boxes ghostly to pass through special walls"
     ]
 }
