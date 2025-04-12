@@ -1,0 +1,32 @@
+from enum import Enum
+
+# Window settings
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+FPS = 60
+
+# Colors
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+
+# Physics constants
+GRAVITY = 0.8
+PLAYER_SPEED = 5
+PLAYER_ACCELERATION = 0.5
+PLAYER_DECELERATION = 0.3
+PLAYER_JUMP_FORCE = -15
+PLAYER_MAX_SPEED = 20
+BOUNCY_FORCE = -15
+HEAVY_MASS = 5
+FLOATY_GRAVITY = 0.2
+
+# Game settings
+MAX_ACTIVE_MODIFIERS = 3
+
+class GameState(Enum):
+    PLAYING = 1
+    PAUSED = 2
+    GAME_OVER = 3

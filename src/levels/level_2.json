@@ -1,0 +1,73 @@
+{
+    "name": "Heavy Pushing",
+    "description": "Learn to use heavy and bouncy modifiers together",
+    "player_start": {
+        "x": 50,
+        "y": 500
+    },
+    "goal": {
+        "x": 700,
+        "y": 200
+    },
+    "static_objects": [
+        {
+            "x": 0,
+            "y": 580,
+            "width": 800,
+            "height": 20,
+            "color": [0, 255, 0],
+            "type": "platform"
+        },
+        {
+            "x": 650,
+            "y": 250,
+            "width": 150,
+            "height": 20,
+            "color": [0, 255, 0],
+            "type": "platform"
+        },
+        {
+            "x": 350,
+            "y": 400,
+            "width": 200,
+            "height": 20,
+            "color": [0, 255, 0],
+            "type": "platform"
+        }
+    ],
+    "dynamic_objects": [
+        {
+            "x": 100,
+            "y": 550,
+            "width": 30,
+            "height": 30,
+            "color": [255, 0, 0],
+            "type": "box",
+            "hint": "Make me bouncy to reach the middle platform!"
+        },
+        {
+            "x": 400,
+            "y": 370,
+            "width": 40,
+            "height": 30,
+            "color": [139, 69, 19],
+            "type": "blocking_box",
+            "hint": "I need to be pushed off..."
+        },
+        {
+            "x": 300,
+            "y": 370,
+            "width": 30,
+            "height": 30,
+            "color": [255, 0, 0],
+            "type": "box",
+            "hint": "Make me heavy to push the brown box!"
+        }
+    ],
+    "hints": [
+        "You'll need to use multiple modifiers to solve this puzzle",
+        "First use the bouncy modifier to reach the middle platform",
+        "Then make the second red box heavy to push the blocking box",
+        "Finally, use bouncy again to reach the goal"
+    ]
+}
