@@ -25,7 +25,9 @@ class Player(GameObject):
         self.current_modifier_index = 0
         self.modifier_types = ["bouncy", "heavy", "floaty", "sticky", "reversed", "ghostly"]
         self.last_modifier_use = 0
+        self.last_modifier_cycle = 0  # New variable for cycling cooldown
         self.modifier_cooldown = settings.get("mallet", "cooldown", default=0.5)
+        self.cycle_cooldown = settings.get("controls", "cycle_cooldown", default=0.15)  # New cooldown for cycling
         
         # Animation states
         self.sprite_manager = SpriteManager()
@@ -93,13 +95,16 @@ class Player(GameObject):
         if self.velocity_y > max_fall_speed:
             self.velocity_y = max_fall_speed
 
-        # Modifier cycling
+        # Modifier cycling with cooldown
         key_next = self.settings.get("controls", "cycle_mod_next", default=pygame.K_e)
         key_prev = self.settings.get("controls", "cycle_mod_prev", default=pygame.K_q)
-        if keys[key_next]:
-            self.current_modifier_index = (self.current_modifier_index + 1) % len(self.modifier_types)
-        elif keys[key_prev]:
-            self.current_modifier_index = (self.current_modifier_index - 1) % len(self.modifier_types)
+        
+        if (keys[key_next] or keys[key_prev]) and current_time - self.last_modifier_cycle >= self.cycle_cooldown:
+            if keys[key_next]:
+                self.current_modifier_index = (self.current_modifier_index + 1) % len(self.modifier_types)
+            elif keys[key_prev]:
+                self.current_modifier_index = (self.current_modifier_index - 1) % len(self.modifier_types)
+            self.last_modifier_cycle = current_time
 
         # Update animation state
         if not self.on_ground:
@@ -175,22 +180,30 @@ class Player(GameObject):
                          (int(self.rect.centerx), int(self.rect.centery)), 
                          self.mallet_range, 1)
         
-        # Draw current modifier type and cooldown
+        # Draw current modifier type and cooldown with selection highlight
         font_size = self.settings.get("ui", "font_size_normal", default=24)
-        font = pygame.font.Font(None, font_size)
+        font = pygame.font.Font(FONT_NAME, font_size)
         text_color = tuple(self.settings.get("colors", "ui_text", default=[255, 255, 255]))
+        selected_color = MODIFIER_COLORS.get(self.modifier_types[self.current_modifier_index], WHITE)
         
         current_time = pygame.time.get_ticks() / 1000.0
         cooldown_remaining = max(0, self.modifier_cooldown - (current_time - self.last_modifier_use))
         
-        if cooldown_remaining > 0:
-            text = font.render(f"Modifier: {self.modifier_types[self.current_modifier_index]} ({cooldown_remaining:.1f}s)", 
-                             True, text_color)
-        else:
-            text = font.render(f"Modifier: {self.modifier_types[self.current_modifier_index]} (Ready!)", 
-                             True, text_color)
-        # Position the text below the level name (40 pixels down from top)
-        screen.blit(text, (10, 40))
+        mod_text_str = f"Modifier: {self.modifier_types[self.current_modifier_index]}"
+        if SHOW_COOLDOWN:
+            if cooldown_remaining > 0:
+                mod_text_str += f" ({cooldown_remaining:.1f}s)"
+            else:
+                mod_text_str += " (Ready!)"
+                
+        text_surface = font.render(mod_text_str, True, text_color)
+        text_rect = text_surface.get_rect(topleft=(10, 40))
+        
+        # Draw a background highlight for the selected modifier text
+        highlight_rect = text_rect.inflate(10, 5) # Add padding
+        pygame.draw.rect(screen, selected_color, highlight_rect, border_radius=5)
+        pygame.draw.rect(screen, BLACK, highlight_rect, width=1, border_radius=5) # Optional outline
+        screen.blit(text_surface, text_rect)
 
         # Draw debug info if enabled
         if self.settings.get("debug", "draw_colliders", default=False):

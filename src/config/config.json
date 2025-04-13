@@ -6,19 +6,20 @@
         "fps": 60
     },
     "physics": {
-        "gravity": 0.8,
+        "gravity": 0.7,
         "player": {
-            "acceleration": 0.5,
-            "deceleration": 0.35,
-            "air_acceleration": 0.2,
-            "max_speed": 7,
-            "jump_force": -15,
+            "acceleration": 0.4,
+            "deceleration": 0.4,
+            "air_acceleration": 0.15,
+            "max_speed": 5.5,
+            "jump_force": -13,
             "mass": 1.0
         },
         "object": {
             "default_mass": 1.0,
             "default_friction": 0.5,
-            "default_elasticity": 0.2
+            "default_elasticity": 0.2,
+            "push_force_scale": 0.8
         },
         "modifiers": {
             "bouncy_elasticity": 0.9,

@@ -34,19 +34,20 @@ class SettingsManager:
                 }
             },
             "physics": {
-                "gravity": 0.8,
+                "gravity": 0.7,  # Slightly reduced from original
                 "player": {
-                    "acceleration": 0.5,
-                    "deceleration": 0.35,
-                    "air_acceleration": 0.2,
-                    "max_speed": 7,
-                    "jump_force": -15,
+                    "acceleration": 0.4,  # More gradual acceleration
+                    "deceleration": 0.4,  # Matching deceleration for smooth feel
+                    "air_acceleration": 0.15,  # Reduced air control
+                    "max_speed": 5.5,  # Slightly lower top speed
+                    "jump_force": -13,  # Adjusted for new gravity
                     "mass": 1.0
                 },
                 "object": {
                     "default_mass": 1.0,
                     "default_friction": 0.5,
-                    "default_elasticity": 0.2
+                    "default_elasticity": 0.2,
+                    "push_force_scale": 0.8  # New: scales force applied when pushing objects
                 },
                 "modifiers": {
                     "bouncy_elasticity": 0.9,
